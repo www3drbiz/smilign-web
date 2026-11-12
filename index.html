@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>스마일라인 치과 v2</title>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: 풀블리드 화이트 내비 > 중앙 정렬 히어로(별점·60px 헤드라인·아이콘 스트립·CTA) > 기울어진 예약화면 목업(바이올렛 글로우) > 신뢰 수치 > 80px 간격의 카드 섹션들 > 4열 후기 > 플로팅 챗 오브. 구분선 없이 라벤더 캔버스와 흰 카드로만 리듬 */
+:root{
+  --canvas:#f3f5ff; --card:#ffffff; --ink:#181c31; --muted:#757693; --line:#e5e7eb;
+  --wash:#dbeafe; --violet:#4457ff; --violet2:#7583fd; --glow:rgba(32,36,138,.25);
+  --star:#fbbf24;
+  --grad:linear-gradient(to right,#4457ff,#7583fd);
+  --font:"DM Sans","Noto Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.56;word-break:keep-all}
+a{color:inherit;text-decoration:none}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+section{padding-block:40px}
+.sec-head{text-align:center;margin-bottom:40px;display:flex;flex-direction:column;gap:12px;align-items:center}
+.sec-head h2{font-size:clamp(28px,4vw,36px);font-weight:600;line-height:1.25}
+.sec-head p{color:var(--muted);font-size:18px;max-width:52ch}
+.gt{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+:focus-visible{outline:3px solid var(--violet);outline-offset:3px}
+
+/* 버튼: 전부 pill, 그림자 없음 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:9999px;font:500 16px/1.4 var(--font);border:0;cursor:pointer;white-space:nowrap}
+.btn-grad{background:var(--grad);color:#fff}
+.btn-ink{background:var(--ink);color:#fff}
+.btn-ghost{background:transparent;color:var(--muted)}
+.btn-white{background:var(--card);color:var(--ink)}
+.btn:hover{opacity:.9}
+.btn svg{width:16px;height:16px}
+
+/* 내비 */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--card)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--card)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;height:72px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px}
+.logo svg{width:32px;height:32px;flex:none}
+.menu{display:flex;gap:32px;font-size:15px;font-weight:500;color:var(--muted)}
+.menu a:hover{color:var(--ink)}
+.nav-r{display:flex;align-items:center;gap:8px}
+.burger{display:none;width:44px;height:44px;border-radius:9999px;border:0;background:var(--canvas);color:var(--ink);cursor:pointer;place-items:center}
+.burger svg{width:20px;height:20px}
+
+/* 히어로 */
+.hero{padding-block:64px 0;text-align:center}
+.stars{display:inline-flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:14px}
+.stars i{font-style:normal;color:var(--star);letter-spacing:3px;font-size:18px}
+.hero h1{font-size:clamp(36px,6.4vw,60px);font-weight:700;line-height:1.12;letter-spacing:-.02em;margin:20px auto 20px;max-width:15em}
+.hero .sub{font-size:20px;line-height:1.5;color:var(--muted);max-width:36em;margin:0 auto}
+.icons{display:flex;justify-content:center;flex-wrap:wrap;gap:12px 16px;margin:32px auto 0}
+.icons span{display:inline-flex;align-items:center;gap:8px;background:var(--card);border-radius:9999px;padding:8px 16px 8px 8px;font-size:14px;font-weight:500}
+.icons b{width:28px;height:28px;border-radius:9999px;background:var(--wash);color:var(--violet);display:grid;place-items:center}
+.icons svg{width:16px;height:16px}
+.hero-cta{margin-top:32px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.trust{margin-top:24px;font-size:18px;color:var(--muted)}
+.trust b{color:var(--violet);font-weight:600}
+
+/* 목업 */
+.stage{position:relative;margin-top:56px;padding-bottom:24px}
+.mock{position:relative;max-width:980px;margin:0 auto;background:var(--card);border-radius:24px;padding:20px;text-align:left;box-shadow:var(--glow) -19px 5px 60px 4px;transform:perspective(1600px) rotateX(5deg) rotateZ(-1deg);transform-origin:50% 100%}
+.mock .bar{display:flex;align-items:center;gap:8px;padding:0 4px 16px}
+.mock .bar i{width:10px;height:10px;border-radius:9999px;background:var(--line)}
+.mock .bar span{margin-left:12px;font-size:13px;color:var(--muted)}
+.mock-body{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:16px}
+.mock-body>*{min-width:0}
+.pane{background:var(--canvas);border-radius:15px;padding:18px}
+.pane h4{margin:0 0 12px;font-size:14px;font-weight:600}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:13px;font-variant-numeric:tabular-nums}
+.cal span{padding:7px 0;border-radius:9999px;color:var(--ink)}
+.cal .h{color:var(--muted);font-size:11px}
+.cal .x{color:#b8bad0}
+.cal .on{background:var(--violet);color:#fff;font-weight:600}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.slots span{background:var(--card);border-radius:9999px;text-align:center;padding:8px 0;font-size:13px;font-variant-numeric:tabular-nums}
+.slots .on{background:var(--violet);color:#fff;font-weight:600}
+.slots .off{color:#b8bad0;text-decoration:line-through}
+.who{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:15px;padding:10px;margin-bottom:8px;font-size:13px}
+.who.on{background:var(--wash)}
+.who svg{width:36px;height:36px;border-radius:9999px;background:var(--wash);color:var(--violet);flex:none}
+.who b{display:block;font-weight:600;font-size:14px}
+.who small{color:var(--muted);font-size:12px}
+.deco{position:absolute;display:grid;place-items:center;border-radius:9999px;color:#fff}
+.deco svg{width:55%;height:55%}
+.d1{width:76px;height:76px;background:var(--violet);left:2%;top:-18px;transform:rotate(-14deg)}
+.d2{width:60px;height:60px;background:var(--violet2);right:3%;top:-30px;transform:rotate(16deg)}
+.d3{width:48px;height:48px;background:var(--wash);color:var(--violet);right:-6px;bottom:30px;transform:rotate(-10deg)}
+.d4{width:40px;height:40px;background:var(--card);color:var(--violet);left:-6px;bottom:60px;transform:rotate(12deg)}
+
+/* 카드 공통 */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid4>*,.grid3>*{min-width:0}
+.card{background:var(--card);border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.ic{width:48px;height:48px;border-radius:9999px;background:var(--wash);color:var(--violet);display:grid;place-items:center;flex:none}
+.ic svg{width:24px;height:24px}
+.card h3{font-size:20px;font-weight:600;line-height:1.4}
+.card p{color:var(--muted);font-size:15px}
+.card .more{margin-top:auto;padding-top:4px;font-size:14px;font-weight:600;color:var(--violet)}
+
+/* 하이라이트 패널 */
+.panel-wash{background:var(--wash);border-radius:24px;padding:48px;display:grid;grid-template-columns:1fr 1.3fr;gap:40px;align-items:center}
+.panel-wash>*{min-width:0}
+.panel-wash h2{font-size:clamp(28px,4vw,36px);font-weight:600;line-height:1.25;margin-bottom:12px}
+.panel-wash .lead{color:var(--ink);opacity:.72;font-size:17px}
+.feats{display:grid;gap:12px}
+.feat{background:var(--card);border-radius:24px;padding:20px 24px;display:flex;gap:16px;align-items:flex-start}
+.feat h3{font-size:17px;font-weight:600}
+.feat p{font-size:14.5px;color:var(--muted);margin-top:2px}
+
+/* 의료진 */
+.doc{background:var(--card);border-radius:24px;padding:24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
+.av{width:88px;height:88px;border-radius:9999px;background:var(--wash);color:var(--violet);display:grid;place-items:end center;overflow:hidden;margin-bottom:12px}
+.av svg{width:80%;height:auto}
+.doc .role{font-size:13px;color:var(--violet);font-weight:600}
+.doc b{font-size:20px;font-weight:600}
+.doc small{font-size:13.5px;color:var(--muted);line-height:1.55;margin-top:4px}
+.note{text-align:center;color:var(--muted);font-size:13px;margin-top:20px}
+
+/* 절차 */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;counter-reset:s}
+.steps>*{min-width:0}
+.step{background:var(--card);border-radius:24px;padding:24px 20px}
+.step::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:32px;height:32px;border-radius:9999px;background:var(--violet);color:#fff;font-size:14px;font-weight:600;margin-bottom:14px}
+.step h3{font-size:17px;font-weight:600;margin-bottom:4px}
+.step p{font-size:14px;color:var(--muted)}
+
+/* 후기 */
+.rev-top{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:4px;flex-wrap:wrap;color:var(--muted);font-size:14px}
+.stack{display:flex}
+.stack svg{width:40px;height:40px;border-radius:9999px;border:2px solid var(--canvas);background:var(--wash);color:var(--violet);margin-left:-8px}
+.stack svg:first-child{margin-left:0}
+.rev{background:var(--card);border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.rev-h{display:flex;gap:12px;align-items:center}
+.rev-h svg{width:48px;height:48px;border-radius:9999px;background:var(--wash);color:var(--violet);flex:none}
+.rev-h b{display:block;font-weight:600;line-height:1.3}
+.rev-h small{color:var(--muted);font-size:13px}
+.rev .s{color:var(--star);letter-spacing:2px;font-size:15px}
+.rev p{font-size:16px}
+
+/* 공지·진료시간 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.two>*{min-width:0}
+.box{background:var(--card);border-radius:24px;padding:28px}
+.box h3{font-size:24px;font-weight:600;line-height:1.33;margin-bottom:12px}
+.box ul{margin:0;padding:0;list-style:none}
+.box li{display:flex;justify-content:space-between;gap:16px;padding:12px 0;font-size:15px}
+.box li+li{border-top:1px solid var(--line)}
+.box time{color:var(--muted);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.hours{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.hours td{padding:12px 0;border-top:1px solid var(--line)}
+.hours tr:first-child td{border-top:0}
+.hours td:last-child{text-align:right;font-weight:600}
+.hours .off td:last-child{color:var(--muted);font-weight:400}
+.addr{margin-top:16px;background:var(--canvas);border-radius:15px;padding:16px;font-size:14.5px;color:var(--muted)}
+.addr b{display:block;color:var(--ink);font-weight:600;margin-bottom:2px}
+
+/* 마무리 CTA */
+.final{background:var(--ink);color:#fff;border-radius:24px;padding:64px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px}
+.final h2{font-size:clamp(28px,4.4vw,44px);font-weight:700;line-height:1.15;max-width:16em}
+.final p{color:#b9bbd6;font-size:18px}
+.final .tel{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+
+footer{padding-block:48px 40px;color:var(--muted);font-size:14px}
+footer .top{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:center}
+footer .logo{color:var(--ink)}
+footer nav{display:flex;gap:24px;flex-wrap:wrap}
+footer .biz{margin-top:20px;font-size:13px;line-height:1.8}
+
+/* 챗 오브 */
+.orb-wrap{position:fixed;right:max(24px,env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:25;display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.orb{width:56px;height:56px;border-radius:9999px;border:0;background:var(--violet);color:#fff;display:grid;place-items:center;cursor:pointer}
+.orb svg{width:26px;height:26px}
+.greet{background:var(--card);border-radius:24px;padding:18px 20px;width:min(300px,calc(100vw - 48px));font-size:14.5px}
+.greet b{display:block;font-weight:600;margin-bottom:4px}
+.greet p{color:var(--muted);margin-bottom:12px}
+.greet .btn{padding:8px 16px;font-size:14px}
+
+.lock{background:var(--card);border-radius:24px;padding:48px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;max-width:640px;margin:0 auto}
+.lock h3{font-size:22px;font-weight:600}
+.lock p{color:var(--muted);font-size:15px}
+.lock-btns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center}
+.lock[hidden]{display:none}
+/* 로그인·회원가입 */
+.ov{position:fixed;inset:0;background:rgba(24,28,49,.5);z-index:40;display:grid;place-items:center;padding:16px}
+.ov[hidden]{display:none}
+.sheet{position:relative;background:var(--card);border-radius:24px;width:min(440px,100%);max-height:calc(100dvh - 32px);overflow-y:auto;padding:28px 24px;overscroll-behavior:contain}
+.x{position:absolute;right:12px;top:12px;width:44px;height:44px;border-radius:9999px;border:0;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center}
+.x svg{width:20px;height:20px}
+.sheet h2{font-size:24px;font-weight:600;line-height:1.3;margin-bottom:4px;padding-right:40px}
+.sheet .lead{color:var(--muted);font-size:14.5px;margin-bottom:20px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--canvas);border-radius:9999px;padding:4px;margin-bottom:20px}
+.tabs button{border:0;background:transparent;border-radius:9999px;padding:10px 0;font:500 15px var(--font);color:var(--muted);cursor:pointer;min-height:44px}
+.tabs button[aria-selected="true"]{background:var(--card);color:var(--ink);font-weight:600}
+.gbtn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:48px;border-radius:9999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:500 16px var(--font);cursor:pointer}
+.gbtn svg{width:20px;height:20px}
+#gOfficial{display:flex;justify-content:center}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px;margin:18px 0}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.fld{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.fld label{font-size:14px;font-weight:600}
+.fld input[type=text],.fld input[type=email],.fld input[type=password]{height:48px;border:1px solid var(--line);border-radius:15px;padding:0 16px;background:var(--canvas);color:var(--ink);font:400 16px var(--font);width:100%}
+.fld input:focus{outline:2px solid var(--violet);outline-offset:0;background:var(--card)}
+.fld .err{color:#c0392b;font-size:13px;min-height:0}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);margin:4px 0 16px}
+.chk input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--violet);flex:none}
+.sheet .btn-ink{width:100%;min-height:48px}
+.fine{font-size:12.5px;color:var(--muted);margin-top:14px;text-align:center}
+.msg{background:var(--wash);color:var(--ink);border-radius:15px;padding:12px 14px;font-size:14px;margin-bottom:14px}
+.me{display:none;align-items:center;gap:8px;background:var(--canvas);border-radius:9999px;padding:4px 6px 4px 4px;font-size:14px;font-weight:500}
+.me.on{display:flex}
+.me i{width:32px;height:32px;border-radius:9999px;background:var(--violet);color:#fff;display:grid;place-items:center;font-style:normal;font-weight:600;font-size:14px}
+.me span{max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me button{border:0;background:transparent;color:var(--muted);font:500 13px var(--font);cursor:pointer;padding:8px 10px;border-radius:9999px;min-height:36px}
+.guest.off{display:none}
+.m-auth{display:none}
+.mbar{display:none}
+
+@media (max-width:1000px){
+  .grid4{grid-template-columns:repeat(2,1fr)}
+  .grid3{grid-template-columns:1fr}
+  .steps{grid-template-columns:repeat(2,1fr)}
+  .panel-wash{grid-template-columns:1fr;padding:32px 20px}
+  .two{grid-template-columns:1fr}
+  .menu{display:none}
+  .menu.open{display:flex;flex-direction:column;gap:0;position:absolute;top:100%;left:0;right:0;background:var(--card);padding:8px max(16px,env(safe-area-inset-right,0px)) 16px}
+  .menu.open a{padding:14px 0;color:var(--ink)}
+  .burger{display:grid}
+  .m-auth{display:flex;gap:8px;padding-top:12px}
+  .m-auth .btn{flex:1}
+  .mock-body{grid-template-columns:1fr}
+  .mock{transform:none}
+}
+@media (max-width:560px){
+  body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  section{padding-block:28px}
+  .nav{height:60px}
+  .logo{font-size:18px}
+  .nav-r .guest.signup,.me button{display:none}
+  .nav-r .guest.login{padding:8px 16px;font-size:14px;background:var(--canvas);color:var(--ink)}
+  .menu.open a{padding:16px 0;font-size:17px}
+  .hero-cta{flex-direction:column;align-items:stretch}
+  .hero-cta .btn{width:100%;min-height:52px}
+  .icons{gap:8px}
+  .icons span{font-size:13px}
+  .sec-head{margin-bottom:24px}
+  .sec-head p{font-size:16px}
+  .stage{margin-top:40px}
+  .mock{padding:14px;border-radius:20px}
+  .mock-body .pane:first-child{display:none}
+  .box,.card,.rev,.doc{padding:20px}
+  .panel-wash{border-radius:20px}
+  .final .tel{font-size:24px}
+  .lock{padding:32px 20px}
+  .lock-btns{width:100%}
+  .lock-btns .btn{flex:1;min-height:48px}
+  .final .btn{width:100%;min-height:52px}
+  footer nav{gap:8px 20px}
+  .orb-wrap{bottom:calc(88px + env(safe-area-inset-bottom,0px));right:max(16px,env(safe-area-inset-right,0px))}
+  .mbar{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:24;background:var(--card);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  .mbar .btn{min-height:48px;padding:10px 12px}
+  .mbar .btn-line{background:var(--canvas);color:var(--ink)}
+  .ov{place-items:end center;padding:0}
+  .sheet{border-radius:24px 24px 0 0;width:100%;max-height:92dvh;padding:24px 20px calc(24px + env(safe-area-inset-bottom,0px))}
+  .hero{padding-top:40px}
+  .hero .sub{font-size:17px}
+  .grid4,.steps{grid-template-columns:1fr}
+  .d1,.d2{transform:scale(.75)}
+  .d3,.d4{display:none}
+  .trust{font-size:16px}
+  .final{padding-block:48px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#top" aria-label="스마일라인 치과 홈">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect width="32" height="32" rx="16" fill="#4457ff"/><path d="M9 12.500c0-2 1.600-3.400 3.600-3.400 1.400 0 2.400.6 3.400 1.200 1-.6 2-1.200 3.400-1.200 2 0 3.600 1.400 3.600 3.400 0 4.200-2 9.600-3.200 11.400-.5.800-1.500.8-1.900 0L16 19.500l-1.900 4.400c-.4.800-1.400.8-1.900 0C11 22.100 9 16.700 9 12.500Z" fill="#fff"/></svg>
+      스마일라인 치과
+    </a>
+    <nav class="menu" id="menu" aria-label="주요 메뉴">
+      <a href="#treat">진료안내</a><a href="#about">병원소개</a><a href="#docs">의료진</a><a href="#process">진료절차</a><a href="#review">치료후기</a><a href="#visit">오시는 길</a>
+      <span class="m-auth guest"><button class="btn btn-white" type="button" data-auth="login" style="background:var(--canvas)">로그인</button><button class="btn btn-ink" type="button" data-auth="signup">회원가입</button></span>
+    </nav>
+    <div class="nav-r">
+      <span class="me" id="me"><i id="meI">?</i><span id="meN"></span><button type="button" id="logout">로그아웃</button></span>
+      <button class="btn btn-ghost guest login" type="button" data-auth="login">로그인</button>
+      <button class="btn btn-ink guest signup" type="button" data-auth="signup">회원가입</button>
+      <button class="burger" id="burger" aria-label="메뉴 열기" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero"><div class="wrap">
+  <div class="stars"><span>전문의 6명 · 평일 야간·토요일 진료</span></div>
+  <h1>편안하게 시작해서<br><span class="gt">오래 웃을 수 있는</span> 치과</h1>
+  <p class="sub">정확한 진단, 충분한 설명, 투명한 비용. 스마일라인은 환자 한 분 한 분에게 맞춘 치료 계획을 세웁니다.</p>
+  <div class="icons">
+    <span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8M8 7l4-4 4 4"/><path d="M7 13c0 4 1 8 2 8s1-2 3-2 2 2 3 2 2-4 2-8"/></svg></b>임플란트</span>
+    <span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M8 10v4M12 10v4M16 10v4"/></svg></b>치아교정</span>
+    <span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4.500 3 7.500 7 9 4-1.500 7-4.500 7-9V6l-7-3Z"/></svg></b>충치·신경치료</span>
+    <span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.500-7-10a4 4 0 0 1 7-2.500A4 4 0 0 1 19 10c0 5.500-7 10-7 10Z"/></svg></b>잇몸치료</span>
+    <span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/></svg></b>소아치과</span>
+    <span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.800 5.200L19 10l-5.200 1.800L12 17l-1.800-5.200L5 10l5.200-1.800L12 3Z"/></svg></b>심미·미백</span>
+  </div>
+  <div class="hero-cta" id="book">
+    <a class="btn btn-grad" href="#visit">온라인 예약하기 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.500" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    <a class="btn btn-white" href="#treat">진료과목 보기</a>
+  </div>
+  <p class="trust">누적 <b>12,000+</b> 임플란트 식립 · 임상 경력 <b>15년</b> · 전문의 <b>6명</b></p>
+
+  <div class="stage">
+    <div class="deco d1" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3.500c-2 0-3.500 1.500-3.500 3.600 0 4.400 2 10.200 3.400 12.200.5.700 1.400.7 1.700-.1L10 15.500c.6-.4 1.400-.4 2 0l1.400 3.700c.3.800 1.200.8 1.700.1 1.400-2 3.400-7.800 3.400-12.200 0-2.100-1.500-3.600-3.500-3.600-1.400 0-2.400.7-3.500 1.300-1.100-.6-2.100-1.300-3.500-1.300Z"/></svg></div>
+    <div class="deco d2" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-8-5-8-11a4.500 4.500 0 0 1 8-2.800A4.500 4.500 0 0 1 20 10c0 6-8 11-8 11Z"/></svg></div>
+    <div class="deco d3" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></div>
+    <div class="deco d4" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 2.500 7.500L22 12l-7.500 2.500L12 22l-2.500-7.500L2 12l7.500-2.500L12 2Z"/></svg></div>
+
+    <div class="mock" role="img" aria-label="온라인 진료예약 화면 예시">
+      <div class="bar"><i></i><i></i><i></i><span>smilign.kr/예약 · 샘플 화면</span></div>
+      <div class="mock-body">
+        <div class="pane">
+          <h4>1. 의료진 선택</h4>
+          <div class="who on"><svg viewBox="0 0 36 36" fill="currentColor"><circle cx="18" cy="14" r="6"/><path d="M6 36c0-8 5-12 12-12s12 4 12 12Z"/></svg><span><b>김하늘 원장</b><small>보철 · 임플란트</small></span></div>
+          <div class="who"><svg viewBox="0 0 36 36" fill="currentColor"><circle cx="18" cy="14" r="6"/><path d="M6 36c0-8 5-12 12-12s12 4 12 12Z"/></svg><span><b>이도윤 원장</b><small>치아교정</small></span></div>
+          <div class="who"><svg viewBox="0 0 36 36" fill="currentColor"><circle cx="18" cy="14" r="6"/><path d="M6 36c0-8 5-12 12-12s12 4 12 12Z"/></svg><span><b>박서연 원장</b><small>보존 · 신경치료</small></span></div>
+        </div>
+        <div class="pane">
+          <h4>2. 날짜 선택 · 2026년 11월</h4>
+          <div class="cal">
+            <span class="h">일</span><span class="h">월</span><span class="h">화</span><span class="h">수</span><span class="h">목</span><span class="h">금</span><span class="h">토</span>
+            <span class="x">1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+            <span class="x">8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span>
+            <span class="x">15</span><span>16</span><span class="on">17</span><span>18</span><span>19</span><span>20</span><span>21</span>
+            <span class="x">22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span>
+          </div>
+        </div>
+        <div class="pane">
+          <h4>3. 시간 선택 · 11월 17일(화)</h4>
+          <div class="slots">
+            <span>09:30</span><span class="off">10:00</span><span>10:30</span><span class="on">11:00</span><span>14:30</span><span>15:00</span><span>18:00</span><span>19:30</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section id="treat"><div class="wrap">
+  <div class="sec-head"><h2>어떤 치료가 필요하신가요?</h2><p>증상이 있을 때도, 예방이 필요할 때도 찾을 수 있는 대표 진료과목입니다.</p></div>
+  <div class="grid4">
+    <a class="card" href="#book"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8M8 7l4-4 4 4"/><path d="M7 13c0 4 1 8 2 8s1-2 3-2 2 2 3 2 2-4 2-8"/></svg></span><h3>임플란트</h3><p>정밀 CT 진단과 디지털 가이드로 식립 위치와 각도를 설계합니다.</p><span class="more">자세히 보기 →</span></a>
+    <a class="card" href="#book"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M8 10v4M12 10v4M16 10v4"/></svg></span><h3>치아교정</h3><p>투명교정과 고정식 교정 중 생활 방식에 맞는 방법을 안내합니다.</p><span class="more">자세히 보기 →</span></a>
+    <a class="card" href="#book"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4.500 3 7.500 7 9 4-1.500 7-4.500 7-9V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span><h3>충치·신경치료</h3><p>가능한 한 자연치아를 살리는 보존 치료를 우선으로 합니다.</p><span class="more">자세히 보기 →</span></a>
+    <a class="card" href="#book"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.500-7-10a4 4 0 0 1 7-2.500A4 4 0 0 1 19 10c0 5.500-7 10-7 10Z"/></svg></span><h3>잇몸치료</h3><p>스케일링부터 잇몸 수술까지, 단계별 관리로 염증을 잡습니다.</p><span class="more">자세히 보기 →</span></a>
+    <a class="card" href="#book"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/></svg></span><h3>소아치과</h3><p>아이 눈높이에 맞춘 설명과 불소 도포, 실란트로 첫 치과를 편안하게.</p><span class="more">자세히 보기 →</span></a>
+    <a class="card" href="#book"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.800 5.200L19 10l-5.200 1.800L12 17l-1.800-5.200L5 10l5.200-1.800L12 3Z"/></svg></span><h3>심미·미백</h3><p>라미네이트, 레진, 전문가 미백으로 밝고 고른 치아를 만듭니다.</p><span class="more">자세히 보기 →</span></a>
+    <a class="card" href="#book"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h4l2-6 4 12 2-6h4"/></svg></span><h3>사랑니 발치</h3><p>CT로 신경 위치를 확인한 뒤 통증과 붓기를 줄이는 방식으로 발치합니다.</p><span class="more">자세히 보기 →</span></a>
+    <a class="card" href="#book"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M8 15h3"/></svg></span><h3>정기검진</h3><p>파노라마 촬영과 구강 검진으로 문제를 초기에 찾아 비용 부담을 줄입니다.</p><span class="more">자세히 보기 →</span></a>
+  </div>
+</div></section>
+
+<section id="about"><div class="wrap">
+  <div class="panel-wash">
+    <div>
+      <h2>치료만큼 <span class="gt">과정</span>도<br>편안해야 합니다</h2>
+      <p class="lead">치료 전에 보여드리고, 동의받고, 시작합니다. 스마일라인이 지키는 세 가지 원칙입니다.</p>
+    </div>
+    <div class="feats">
+      <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span><div><h3>3D CT 정밀 진단</h3><p>구강 상태를 3차원으로 확인하고, 화면으로 직접 보여드리며 설명합니다.</p></div></div>
+      <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round"><path d="M12 3v18M6 8c0 3 3 3 6 3s6 0 6 3-3 3-6 3-6-1-6-3"/></svg></span><div><h3>과잉진료 없는 투명한 비용</h3><p>항목별 비용을 상담 단계에서 안내하고, 동의 없이 치료를 추가하지 않습니다.</p></div></div>
+      <div class="feat"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v6c0 4.500 3 7.500 7 9 4-1.500 7-4.500 7-9V6l-7-3Z"/></svg></span><div><h3>철저한 멸균·감염관리</h3><p>기구는 환자별로 고온 멸균하고, 진료 공간은 진료 사이마다 소독합니다.</p></div></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="docs"><div class="wrap">
+  <div class="sec-head"><h2>분야별 전문의가 함께 봅니다</h2><p>진단부터 치료 계획까지 의료진이 직접 설명드립니다.</p></div>
+  <div class="grid4">
+    <article class="doc"><div class="av"><svg viewBox="0 0 88 70" fill="currentColor"><circle cx="44" cy="26" r="15"/><path d="M10 70c0-20 14-30 34-30s34 10 34 30Z"/></svg></div><span class="role">대표원장 · 보철과 전문의</span><b>김하늘</b><small>서울대학교 치의학대학원 졸업<br>임플란트 학회 정회원</small></article>
+    <article class="doc"><div class="av"><svg viewBox="0 0 88 70" fill="currentColor"><circle cx="44" cy="26" r="15"/><path d="M10 70c0-20 14-30 34-30s34 10 34 30Z"/></svg></div><span class="role">교정과 전문의</span><b>이도윤</b><small>연세대학교 치과대학 졸업<br>투명교정 인증의</small></article>
+    <article class="doc"><div class="av"><svg viewBox="0 0 88 70" fill="currentColor"><circle cx="44" cy="26" r="15"/><path d="M10 70c0-20 14-30 34-30s34 10 34 30Z"/></svg></div><span class="role">보존과 전문의</span><b>박서연</b><small>경희대학교 치과대학 졸업<br>현미경 신경치료</small></article>
+    <article class="doc"><div class="av"><svg viewBox="0 0 88 70" fill="currentColor"><circle cx="44" cy="26" r="15"/><path d="M10 70c0-20 14-30 34-30s34 10 34 30Z"/></svg></div><span class="role">소아치과 전문의</span><b>최민준</b><small>부산대학교 치의학전문대학원 졸업<br>소아치과학회 정회원</small></article>
+  </div>
+  <p class="note">※ 의료진 이름과 약력은 예시입니다. 실제 정보로 교체해 주세요.</p>
+</div></section>
+
+<section id="process"><div class="wrap">
+  <div class="sec-head"><h2>처음 방문해도 어렵지 않아요</h2><p>예약부터 사후 관리까지 다섯 단계로 진행됩니다.</p></div>
+  <div class="steps">
+    <div class="step"><h3>예약·접수</h3><p>전화 또는 온라인으로 예약하고 방문 시 간단한 문진표를 작성합니다.</p></div>
+    <div class="step"><h3>검진·촬영</h3><p>구강 검진과 필요한 X-ray, CT 촬영을 진행합니다.</p></div>
+    <div class="step"><h3>진단·상담</h3><p>촬영 결과를 함께 보며 치료 방법과 기간, 비용을 설명드립니다.</p></div>
+    <div class="step"><h3>치료</h3><p>충분히 마취한 뒤 계획한 순서대로 치료합니다.</p></div>
+    <div class="step"><h3>사후 관리</h3><p>치료 후 주의사항 안내와 정기 점검 일정을 잡아드립니다.</p></div>
+  </div>
+</div></section>
+
+<section id="review"><div class="wrap">
+  <div class="sec-head"><h2>먼저 다녀가신 분들의 이야기</h2><p>치료 후기는 로그인한 회원에게만 공개됩니다.</p></div>
+  <div class="lock" id="revLock">
+    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.800" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+    <h3>로그인 후 치료 후기를 볼 수 있어요</h3>
+    <p>회원가입은 1분이면 충분합니다. Google 계정으로도 시작할 수 있어요.</p>
+    <div class="lock-btns"><button class="btn btn-ink" type="button" data-auth="login">로그인</button><button class="btn btn-white" type="button" data-auth="signup">회원가입</button></div>
+  </div>
+  <div class="grid4" id="revList" hidden></div>
+  <p class="note" id="revNote" hidden>※ 후기는 화면 구성을 위한 샘플 문구입니다. 실제 게시 전 환자 동의와 의료광고 관련 규정 검토가 필요합니다.</p>
+</div></section>
+
+<section id="visit"><div class="wrap">
+  <div class="two">
+    <div class="box">
+      <h3>공지사항</h3>
+      <ul>
+        <li><span>추석 연휴 진료 안내</span><time>2026.09.20</time></li>
+        <li><span>디지털 구강스캐너 도입 안내</span><time>2026.08.28</time></li>
+        <li><span>화·목 야간진료 시간 변경 안내</span><time>2026.08.05</time></li>
+        <li><span>건강보험 스케일링 대상 확인 방법</span><time>2026.07.14</time></li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3>진료시간</h3>
+      <table class="hours">
+        <tr><td>월 · 수 · 금</td><td>09:30 – 18:30</td></tr>
+        <tr><td>화 · 목 (야간진료)</td><td>09:30 – 20:00</td></tr>
+        <tr><td>토요일</td><td>09:30 – 14:00</td></tr>
+        <tr class="off"><td>일요일 · 공휴일</td><td>휴진</td></tr>
+      </table>
+      <div class="addr"><b>오시는 길</b>서울특별시 ○○구 ○○로 123, 4층 (○○역 2번 출구 도보 3분)<br>점심시간 13:00–14:00 · 건물 내 주차 2시간 지원</div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="final">
+    <h2>지금 예약하면 가까운 시간으로 안내해 드려요</h2>
+    <p>평일 야간과 토요일에도 진료합니다.</p>
+    <span class="tel">02-000-0000</span>
+    <a class="btn btn-white" href="#book">온라인 예약하기</a>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <div class="top">
+    <a class="logo" href="#top">스마일라인 치과</a>
+    <nav aria-label="푸터 메뉴"><a href="#treat">진료안내</a><a href="#docs">의료진</a><a href="#review">치료후기</a><a href="#visit">오시는 길</a><a href="#top">개인정보처리방침</a></nav>
+  </div>
+  <p class="biz">대표원장 김하늘 · 사업자등록번호 000-00-00000 · 대표전화 02-000-0000<br>서울특별시 ○○구 ○○로 123, 4층 · © 2026 Smilign Dental Clinic.</p>
+</div></footer>
+
+<div class="mbar">
+  <a class="btn btn-line" href="#visit">진료시간·위치</a>
+  <a class="btn btn-ink" href="#book">온라인 예약</a>
+</div>
+
+<div class="ov" id="ov" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="aTitle">
+    <button class="x" type="button" id="aClose" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <h2 id="aTitle">로그인</h2>
+    <p class="lead" id="aLead">예약 내역과 진료 기록을 확인하세요.</p>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tLogin" aria-selected="true">로그인</button>
+      <button type="button" role="tab" id="tSignup" aria-selected="false">회원가입</button>
+    </div>
+    <div id="aDone" class="msg" hidden></div>
+    <button class="gbtn" type="button" id="gCustom">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.500c3.500 0 6.600 1.200 9.100 3.600l6.800-6.800C35.800 2.400 30.300 0 24 0 14.600 0 6.500 5.400 2.600 13.200l7.900 6.100C12.400 13.600 17.700 9.500 24 9.500Z"/><path fill="#4285F4" d="M46.500 24.500c0-1.600-.1-3.100-.4-4.500H24v9h12.700c-.6 3-2.300 5.500-4.800 7.200l7.500 5.800c4.400-4.100 7.100-10.100 7.100-17.500Z"/><path fill="#FBBC05" d="M10.500 28.700A14.500 14.500 0 0 1 9.500 24c0-1.600.3-3.200.8-4.700l-7.900-6.100A24 24 0 0 0 0 24c0 3.900.9 7.500 2.600 10.800l7.900-6.100Z"/><path fill="#34A853" d="M24 48c6.500 0 11.900-2.100 15.900-5.800l-7.500-5.800c-2.100 1.400-4.800 2.300-8.400 2.300-6.300 0-11.600-4.100-13.500-9.800l-7.900 6.100C6.500 42.600 14.600 48 24 48Z"/></svg>
+      <span id="gLabel">Google 계정으로 로그인</span>
+    </button>
+    <div class="or">또는 이메일로</div>
+
+    <form id="aForm" novalidate>
+      <div class="fld" id="fName" hidden><label for="aName">이름</label><input id="aName" type="text" autocomplete="name" placeholder="홍길동"><span class="err" id="eName"></span></div>
+      <div class="fld"><label for="aEmail">이메일</label><input id="aEmail" type="email" autocomplete="email" inputmode="email" placeholder="name@gmail.com"><span class="err" id="eEmail"></span></div>
+      <div class="fld"><label for="aPw">비밀번호</label><input id="aPw" type="password" autocomplete="current-password" placeholder="8자 이상"><span class="err" id="ePw"></span></div>
+      <div class="fld" id="fPw2" hidden><label for="aPw2">비밀번호 확인</label><input id="aPw2" type="password" autocomplete="new-password" placeholder="비밀번호를 한 번 더 입력"><span class="err" id="ePw2"></span></div>
+      <label class="chk" id="fTerms" hidden><input id="aTerms" type="checkbox"><span>이용약관과 개인정보 수집·이용에 동의합니다. (필수)</span></label>
+      <button class="btn btn-ink" type="submit" id="aSubmit">로그인</button>
+    </form>
+    <p class="fine" id="aFine">샘플 화면입니다. 실제 계정 인증은 서버 연결 후 동작합니다.</p>
+  </div>
+</div>
+
+<div class="orb-wrap">
+  <div class="greet" id="greet">
+    <b>안녕하세요, 스마일라인입니다</b>
+    <p>진료 예약이나 비용이 궁금하시면 편하게 물어보세요.</p>
+    <a class="btn btn-ink" href="#book">예약 문의</a>
+  </div>
+  <button class="orb" id="orb" aria-label="상담 열기/닫기" aria-expanded="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-6l-5 4v-4H7a3 3 0 0 1-3-3V5Z"/></svg></button>
+</div>
+
+<script>
+(function(){
+  var b=document.getElementById('burger'),m=document.getElementById('menu');
+  b.addEventListener('click',function(){var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o)});
+  m.addEventListener('click',function(e){if(e.target.tagName==='A'){m.classList.remove('open');b.setAttribute('aria-expanded',false)}});
+  var o=document.getElementById('orb'),g=document.getElementById('greet');
+  o.addEventListener('click',function(){g.hidden=!g.hidden;o.setAttribute('aria-expanded',!g.hidden)});
+  if(window.innerWidth<=560){g.hidden=true;o.setAttribute('aria-expanded','false')}
+})();
+
+/* ===== 회원가입 · 로그인 (Supabase Auth) =====
+   config.js 의 SL_CONFIG 에 Supabase URL / anon key 를 넣으면 실제 인증·후기 조회가 동작합니다.
+   비어 있으면 화면 확인용 데모 모드로 동작합니다. */
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var CFG=window.SL_CONFIG||{};
+  var sb=null;
+  try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase)sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY)}catch(e){sb=null}
+  var ov=$('ov'),mode='login',lastFocus=null,user=null;
+
+  function store(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+  function esc(t){var d=document.createElement('div');d.textContent=t==null?'':String(t);return d.innerHTML}
+
+  /* 후기: 로그인 사용자에게만 렌더. Supabase 연결 시 DB(RLS)가 비회원 조회를 차단합니다. */
+  var AV='<svg viewBox="0 0 48 48" fill="currentColor"><circle cx="24" cy="19" r="8"/><path d="M8 48c0-11 7-16 16-16s16 5 16 16Z"/></svg>';
+  function card(a,t,b){return '<div class="rev"><div class="rev-h">'+AV+'<span><b>'+esc(a)+'</b><small>'+esc(t)+'</small></span></div><p>'+esc(b)+'</p></div>'}
+  function renderReviews(){
+    var on=!!user,list=$('revList');
+    $('revLock').hidden=on;list.hidden=!on;$('revNote').hidden=!on||!!sb;
+    if(!on){list.innerHTML='';return}
+    if(!sb){
+      var ph='[샘플] 후기 본문이 들어가는 자리입니다. Supabase를 연결하면 DB의 후기가 표시됩니다.';
+      list.innerHTML=card('김○○ 님','임플란트 · 40대',ph)+card('이○○ 님','소아치과 · 학부모',ph)+card('박○○ 님','치아교정 · 20대',ph)+card('최○○ 님','잇몸치료 · 50대',ph);
+      return;
+    }
+    list.innerHTML='';
+    sb.from('reviews').select('author,treatment,body').eq('published',true).order('created_at',{ascending:false}).limit(8).then(function(r){
+      if(r.error||!r.data||!r.data.length){list.innerHTML='<p class="note" style="grid-column:1/-1">표시할 후기가 아직 없습니다.</p>';return}
+      list.innerHTML=r.data.map(function(x){return card(x.author,x.treatment,x.body)}).join('');
+    });
+  }
+
+  function setUser(u){
+    user=u;
+    var on=!!u;
+    $('me').classList.toggle('on',on);
+    document.querySelectorAll('.guest').forEach(function(el){el.classList.toggle('off',on)});
+    if(on){$('meN').textContent=u.name+'님';$('meI').textContent=(u.name||'?').charAt(0)}
+    if(!sb)store('sl_user',u?JSON.stringify({name:u.name,email:u.email}):null);
+    renderReviews();
+  }
+  function fromSb(u){
+    if(!u)return null;var m=u.user_metadata||{};
+    return {name:m.name||m.full_name||(u.email||'회원').split('@')[0],email:u.email};
+  }
+
+  function clearErr(){['eName','eEmail','ePw','ePw2'].forEach(function(i){$(i).textContent=''});$('aDone').hidden=true}
+  function setMode(m){
+    mode=m;clearErr();
+    var s=m==='signup';
+    $('tLogin').setAttribute('aria-selected',!s);$('tSignup').setAttribute('aria-selected',s);
+    $('aTitle').textContent=s?'회원가입':'로그인';
+    $('aLead').textContent=s?'1분이면 가입할 수 있어요. 가입하면 치료 후기를 볼 수 있습니다.':'로그인하면 치료 후기와 예약 내역을 볼 수 있어요.';
+    $('fName').hidden=!s;$('fPw2').hidden=!s;$('fTerms').hidden=!s;
+    $('aSubmit').textContent=s?'가입하기':'로그인';
+    $('gLabel').textContent=s?'Google 계정으로 시작하기':'Google 계정으로 로그인';
+    $('aPw').setAttribute('autocomplete',s?'new-password':'current-password');
+    $('aFine').textContent=sb?'':'샘플 화면입니다. config.js 에 Supabase 정보를 넣으면 실제로 동작합니다.';
+  }
+  function open(m){lastFocus=document.activeElement;setMode(m);ov.hidden=false;document.body.style.overflow='hidden';setTimeout(function(){(m==='signup'?$('aName'):$('aEmail')).focus()},30)}
+  function close(){ov.hidden=true;document.body.style.overflow='';if(lastFocus&&lastFocus.focus)lastFocus.focus()}
+  function note(t){$('aDone').hidden=false;$('aDone').textContent=t}
+
+  document.querySelectorAll('[data-auth]').forEach(function(b){b.addEventListener('click',function(){
+    document.getElementById('menu').classList.remove('open');document.getElementById('burger').setAttribute('aria-expanded','false');
+    open(b.getAttribute('data-auth'))})});
+  $('aClose').addEventListener('click',close);
+  ov.addEventListener('click',function(e){if(e.target===ov)close()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!ov.hidden)close()});
+  $('tLogin').addEventListener('click',function(){setMode('login')});
+  $('tSignup').addEventListener('click',function(){setMode('signup')});
+  $('logout').addEventListener('click',function(){if(sb)sb.auth.signOut();else setUser(null)});
+
+  function done(u,text){setUser(u);note(text);setTimeout(close,900)}
+  function msgKo(m){
+    m=(m||'').toLowerCase();
+    if(m.indexOf('invalid login')>-1)return '이메일 또는 비밀번호가 올바르지 않습니다.';
+    if(m.indexOf('already')>-1)return '이미 가입된 이메일입니다. 로그인해 주세요.';
+    if(m.indexOf('not confirmed')>-1)return '이메일 인증을 완료해 주세요.';
+    if(m.indexOf('rate')>-1)return '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.';
+    return '처리하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+  }
+
+  $('aForm').addEventListener('submit',function(e){
+    e.preventDefault();clearErr();
+    var n=$('aName').value.trim(),em=$('aEmail').value.trim(),pw=$('aPw').value,pw2=$('aPw2').value,ok=true;
+    if(mode==='signup'&&!n){$('eName').textContent='이름을 입력해 주세요.';ok=false}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){$('eEmail').textContent='이메일 형식을 확인해 주세요.';ok=false}
+    if(pw.length<8){$('ePw').textContent='비밀번호는 8자 이상이어야 합니다.';ok=false}
+    if(mode==='signup'){
+      if(pw2!==pw){$('ePw2').textContent='비밀번호가 일치하지 않습니다.';ok=false}
+      else if(!$('aTerms').checked){$('ePw2').textContent='약관 동의가 필요합니다.';ok=false}
+    }
+    if(!ok)return;
+    var btn=$('aSubmit');btn.disabled=true;
+    if(!sb){
+      done({name:mode==='signup'?n:em.split('@')[0],email:em},mode==='signup'?'가입이 완료되었습니다. (데모)':'로그인되었습니다. (데모)');
+      btn.disabled=false;$('aPw').value='';$('aPw2').value='';return;
+    }
+    var p=mode==='signup'
+      ?sb.auth.signUp({email:em,password:pw,options:{data:{name:n},emailRedirectTo:location.origin+location.pathname}})
+      :sb.auth.signInWithPassword({email:em,password:pw});
+    p.then(function(r){
+      btn.disabled=false;
+      if(r.error){note(msgKo(r.error.message));return}
+      $('aPw').value='';$('aPw2').value='';
+      if(mode==='signup'&&!r.data.session){note('인증 메일을 보냈습니다. 메일의 링크를 누르면 가입이 완료됩니다.');return}
+      note(mode==='signup'?'가입이 완료되었습니다.':'로그인되었습니다.');setTimeout(close,900);
+    }).catch(function(){btn.disabled=false;note('네트워크 오류가 발생했습니다.')});
+  });
+
+  $('gCustom').addEventListener('click',function(){
+    if(!sb){done({name:'구글 사용자',email:'demo.user@gmail.com'},'데모 모드입니다. Supabase를 연결하면 실제 Google 로그인이 동작합니다.');return}
+    sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}}).then(function(r){if(r.error)note(msgKo(r.error.message))});
+  });
+
+  renderReviews();
+  if(sb){
+    sb.auth.getSession().then(function(r){setUser(fromSb(r.data.session&&r.data.session.user))});
+    sb.auth.onAuthStateChange(function(_e,session){setUser(fromSb(session&&session.user))});
+  }else{
+    try{var saved=JSON.parse(store('sl_user')||'null');if(saved&&saved.email)setUser(saved)}catch(e){}
+  }
+})();
+</script>
+
+</body>
+</html>
